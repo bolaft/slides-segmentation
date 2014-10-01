@@ -1,0 +1,947 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+
+    <title>Segmentation discursive des courriels selon une approche supervisée "paresseuse"</title>
+
+    <meta name="author" content="Soufian Salim">
+
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <link rel="stylesheet" href="css/reveal.min.css">
+    <link rel="stylesheet" href="css/theme/default.css" id="theme">
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+    <link rel="stylesheet" href="css/custom.css">
+
+    <!-- For syntax highlighting -->
+    <link rel="stylesheet" href="lib/css/zenburn.css">
+    <!-- <link rel="stylesheet" href="css/print/pdf.css"> -->
+
+    <!-- If the query includes 'print-pdf', use the PDF print sheet -->
+    <script>
+    document.write('<link rel="stylesheet" href="css/print/' + (window.location.search.match(/print-pdf/gi) ? 'pdf' : 'paper') + '.css" type="text/css" media="print">');
+    </script>
+
+    <!--[if lt IE 9]>
+        <script src="lib/js/html5shiv.js"></script>
+        <![endif]-->
+
+    <style type="text/css">
+        .best {
+            background-color: rgba(0, 255, 55, 0.3);
+        }
+        .good {
+            background-color: rgba(145, 252, 5, 0.3);
+        }
+        .bad {
+            background-color: rgba(255, 153, 0, 0.3);
+        }
+        .worst {
+            background-color: rgba(252, 0, 0, 0.3);
+        }
+
+        .reveal .slide-number {
+            font-size: 36px;
+            bottom: 40px;
+            right: 120px;
+        }
+
+        li {
+            font-size: 90% !important;
+        }
+
+        li > ul > li {
+            font-size: 80% !important;
+        }
+
+        .cite {
+            color: #C5DDFF !important;
+        }
+
+        .rotate {
+            -webkit-transform: rotate(-90deg);
+            -moz-transform: rotate(-90deg);
+            -ms-transform: rotate(-90deg);
+            -o-transform: rotate(-90deg);
+            transform: rotate(-90deg);
+
+            /* also accepts left, right, top, bottom coordinates; not required, but a good idea for styling */
+            -webkit-transform-origin: 50% 50%;
+            -moz-transform-origin: 50% 50%;
+            -ms-transform-origin: 50% 50%;
+            -o-transform-origin: 50% 50%;
+            transform-origin: 50% 50%;
+
+            /* Should be unset in IE9+ I think. */
+            filter: progid:DXImageTransform.Microsoft.BasicImage(rotation=3);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="reveal">
+
+        <!-- Any section element inside of this container is displayed as a slide -->
+        <div class="slides">
+            <section data-background="rgba(12,25,77,.4)">
+                <h2>Segmentation discursive des courriels</h2>
+                <h4>selon une approche supervisée ""paresseuse""</h4>
+            </section>
+
+            <section data-background="rgba(255,122,0,.6)">
+                <h2>Sommaire</h2>
+                <hr>
+                <ol>
+                    <li>Introduction</li>
+                    <li>Concepts et étude bibliographique</li>
+                    <li>Étiquetage automatique du corpus</li>
+                    <li>Segmentation de courriels</li>
+                    <li>Cadre expérimental</li>
+                    <li>Expériences et résultats</li>
+                    <li>Conclusion</li>
+                </ol>
+            </section>
+
+            <section>
+                <section data-background="rgba(50,200,90,.4)">
+                    <h2>Introduction</h2>
+                    <hr>
+                    <ol>
+                        <li>Contexte</li>
+                        <li>Motivation et objectifs</li>
+                        <li>Contributions</li>
+                    </ol>
+                </section>
+
+                <section>
+                    <h3>Contexte</h3>
+                    <ul>
+                        <li>
+                            Stage au LINA
+                            <ul>
+                                <li>Février - Juillet 2014</li>
+                                <li>Encadré par Nicolas HERNANDEZ</li>
+                                <li>Tutoré par Christian-Viard GAUDIN</li>
+                            </ul>
+                        </li>
+                        <br>
+                        <li class="fragment">Projet ODISAE
+                            <br>
+                            <em><small>(Optimizing Digital Interaction with a Social and Automated Environment)</small></em><br>
+                            <ul>
+                                <li class="fragment">
+                                    Objectifs :
+                                    <ul>
+                                        <li>Analyseur de conversations en ligne</li>
+                                        <li>Enrichir un système de gestion de la relation client</li>
+                                    </ul>
+                                </li>
+                                <li class="fragment">
+                                    Partenaires :
+                                    <ul>
+                                        <li>EPTICA (coordinateur)</li>
+                                        <li>LINA (partenaire scientifique)</li>
+                                        <li>Jamespot, Kwaga, Cantoche, TokyWoky, Aproged, TokyWoky et Insee</li>
+                                    </ul>
+                                </li>
+                            </ul>
+                        </li>
+                    </ul>
+                </section>
+
+                <section>
+                    <h3>Motivation et objectifs</h3>
+                    <br>
+                    <ul>
+                        <li>Améliorer le traitement des conversations asynchrones en ligne</li>
+                        <br>
+                        <li class="fragment">Accent sur celles portant des demandes d'information</li>
+                        <br>
+                        <li class="fragment">
+                            On cherche à découper les messages en segments :
+                            <ul>
+                                <li>Structurellement autonomes</li>
+                                <li>Rhétoriquement homogènes</li>
+                            </ul>
+                        </li>
+                        <br>
+                        <li class="fragment">
+                            Portée du travail :
+                            <ul>
+                                <li>Courriels</li>
+                                <li>Assistance aux utilisateurs</li>
+                                <li>Anglais</li>
+                            </ul>
+                        </li>
+                    </ul>
+                </section>
+
+                <section>
+                    <h3>Contributions</h3>
+                    <br>
+                    <ol>
+                        <li class="fragment">
+                            Méthode pour produire un corpus étiqueté automatiquement
+                            <ul>
+                                <li>Exploitation des efforts cognitifs effectués par des humains</li>
+                                <li>Pas d'annotation manuelle</li>
+                            </ul>
+                        </li>
+                        <br>
+                        <li class="fragment">
+                            Système de segmentation fondé sur ces données
+                            <ul>
+                                <li>Classifieurs fondés sur différents ensembles de traits</li>
+                                <li>Évaluation des modèles</li>
+                            </ul>
+                        </li>
+                    </ol>
+                </section>
+            </section>
+
+            <section>
+                <section data-background="rgba(22,152,213,.6)">
+                    <h2>Concepts et étude bibliographique</h2>
+                    <hr>
+                    <ol>
+                        <li>Actes du langage</li>
+                        <li>Segmentation de messages</li>
+                        <li>Corpus de courriers électroniques</li>
+                    </ol>
+                </section>
+
+                <section>
+                    <h3>Actes du langage (1/2)</h3>
+                    <br>
+                    <ul>
+                        <li>Nous est utile pour déterminer l'homogénéité rhétorique des segments</li>
+                        <br>
+                        <li class="fragment">
+                            Introduction du terme <span class="cite">[Austin, 1975]</span>
+                            <ul>
+                                <li>Un énoncé n'est pas limité à son contenu sémantique</li>
+                                <li>Fonction communicative : but, effet</li>
+                                <li>Niveaux : locutoires, illocutoires et perlocutoires</li>
+                            </ul>
+                        </li>
+                        <br>
+                        <li class="fragment">
+                            Expansion de la taxonomie <span class="cite">[Searle, 1976]</span>
+                            <ul>
+                                <li>Pas seulement des actes performatifs : tous actes illocutoires</li>
+                                <li>Assertifs, directifs, promissifs, expressifs, et déclaratifs</li>
+                                <li>Critère déterminant : le but de l'acte</li>
+                            </ul>
+                        </li>
+                    </ul>
+                </section>
+
+                <section>
+                    <h3>Actes du langage (2/2)</h3>
+                    <br>
+                    <ul>
+                        <li>Modélisation des interactions dans une conversation</li>
+                        <br>
+                        <li class="fragment">Unité fondamentale : phrase ou message</li>
+                        <br>
+                        <li class="fragment">Reconnaissance : classification supervisée</li>
+                    </ul>
+                </section>
+
+                <section>
+                    <h3>Segmentation de messages</h3>
+                    <br>
+                    <ul>
+                        <li class="fragment">
+                            Courriels :
+                            <ul>
+                                <li>Segmentation en zones prototypiques <span class="cite">[Lampert <em>et al.</em>, 2009]</span></li>
+                                <li>Identification de fragments thématiques <span class="cite">[Joty <em>et al.</em>, 2013]</span></li>
+                            </ul>
+                        </li>
+                        <br>
+                        <li class="fragment">
+                            Segmentation de textes :
+                            <ul>
+                                <li><em>TextTiling</em> <span class="cite">[Hearst, 1997]</span></li>
+                            </ul>
+                        </li>
+                    </ul>
+                </section>
+
+                <section>
+                    <h3>Corpus de courriers électroniques</h3>
+                    <br>
+                    <ul>
+                        <li class="fragment">
+                            Enron <span class="cite">[Klimt &amp; Yang, 2004b]</span>
+                            <ul>
+                                <li>1.7 millions de courriels</li>
+                                <li>Messagerie d'entreprise</li>
+                            </ul>
+                        </li>
+                        <br>
+                        <li class="fragment">
+                            W3C <span class="cite">[Craswell, 2004]</span>
+                            <ul>
+                                <li>50 000 fils de discussion, 200 000 courriels</li>
+                                <li>Messagerie d'entreprise</li>
+                            </ul>
+                        </li>
+                        <br>
+                        <li class="fragment">
+                            BC3 <span class="cite">[Ulrich <em>et al.</em> , 2008a]</span>
+                            <ul>
+                                <li>Tiré du W3C</li>
+                                <li>40 fils de discussion</li>
+                                <li>Métadonnées (résumés, actes du langage) produites par trois annotateurs</li>
+                            </ul>
+                        </li>
+                    </ul>
+                </section>
+            </section>
+
+            <section>
+                <section data-background="rgba(255,122,0,.6)">
+                    <h2>Étiquetage automatique du corpus</h2>
+                    <hr>
+                    <ol>
+                        <li>Hypothèses</li>
+                        <li>Schéma d'annotation</li>
+                        <li>Génération des données étiquetées</li>
+                    </ol>
+                </section>
+
+                <section>
+                    <h3>Hypothèses (1/2)</h3>
+                    <br>
+                    <ol>
+                        <li class="fragment">
+                            Segmentabilité des courriels :
+                            <ul>
+                                <li>Segments localisés et consécutifs</li>
+                                <li>Porteurs de leur propre acte du langage</li>
+                                <li>La phrase comme unité élémentaire</li>
+                            </ul>
+                        </li>
+                        <br>
+                        <li class="fragment">
+                            Quand un rédacteur reprend une partie du texte auquel il répond :
+                            <ul>
+                                <li>Identification de fragments autonomes</li>
+                                <li>Préservation de(s) (l')acte(s) du langage</li>
+                                <li>Mise en forme conventionnelle</li>
+                            </ul>
+                        </li>
+                    </ol>
+                </section>
+
+                <section>
+                    <h3>Hypothèses (2/2)</h3>
+                    <h4>Message "interfolié"</h4>
+                    <br>
+<pre><code style="font-size: 80%">Bonjour Paul,
+
+<span style="color: #A49ACC">></span> <span style="color: #B27D65">Bonjour,</span>
+<span style="color: #A49ACC">></span> <span style="color: #B27D65">Je viens d'ouvrir un magasin d'encadrement et je suis sous ubuntu 13.04.</span>
+
+Vous devriez penser à passer à Ubuntu 13.10 car la 13.04 échue en janvier 2014.</span>
+
+<span style="color: #A49ACC">></span> <span style="color: #B27D65">Je dois maintenant rentrer une multitude de produits pour les loisir</span>
+<span style="color: #A49ACC">></span> <span style="color: #B27D65">créatifs, je m'aperçois que je n'arrive plus à gérer. Je voudrais </span>
+<span style="color: #A49ACC">></span> <span style="color: #B27D65">pouvoir enregistrer tous mes produits avec les prix et numéros de code</span>
+<span style="color: #A49ACC">></span> <span style="color: #B27D65">commande. Car au moment ou le client arrive de pouvoir lui dire un prix</span>
+<span style="color: #A49ACC">></span> <span style="color: #B27D65">tout de suite comment je pourrais faire.</span>
+
+Vous pouvez regarder du côté de Dolibarr : http://www.dolibarr.fr. Permet la 
+gestion des stocks, clients comptes...
+</code></pre>
+                </section>
+
+                <section>
+                    <h3>Schéma d'annotations</h3>
+                    <br>
+                    <ul>
+                        <li><em>starting and ending</em> (SE)</li>
+                        <li><em>starting</em> (S)</li>
+                        <li><em>inside</em> (I)</li>
+                        <li><em>ending</em> (E)</li>
+                    </ul>
+                </section>
+
+                <section>
+                    <h3>Génération des données étiquetées (1/7)</h3>
+                    <br>
+                    Ce que l'on étiquette :
+                    <br><br>
+                    <ul>
+                        <li>Les phrases</li>
+                        <li>
+                            Le message source
+                            <ul>
+                                <li>Données non-bruitées</li>
+                                <li>Contexte de la phrase</li>
+                            </ul>
+                        </li>
+                    </ul>
+                </section>
+
+                <section>
+                    <h3>Génération des données annotées (2/7)</h3>
+                    <br>
+                    <ol>
+                        <li class="fragment">Identification des messages "interfoliés"</li>
+                        <br>
+                        <li class="fragment">
+                            Pour chaque paire message source / réponse :
+                            <ol type="a">
+                                <li>Tokenisation à deux niveaux</li>
+                                <li>Identification des lignes de citations dans la réponse</li>
+                                <li>Alignement avec les phrases du message source</li>
+                                <li>Étiquetage des phrases du message source</li>
+                                <li>Ajout de la séquence de phrases au jeu de données</li>
+                            </ol>
+                        </li>
+                    </ol>
+                </section>
+
+                <section>
+                    <h3>Génération des données annotées (3/7)</h3>
+                    <h4>Tokenisation</h4>
+                    <br>
+                    Solution développée :
+<pre><code style="font-size: 80%"><span style="font-weight: bold; color: #A49ACC;">Pour</span> chaque courriel :
+
+    Reconnaissance des marques de segmentation
+    Correction des marques abusives
+    Segmentation en phrases
+
+    <span style="font-weight: bold; color: #A49ACC;">Pour</span> chaque phrase obtenue :
+
+        Reconnaissance des marques de segmentation
+        Correction des marques abusives
+        Segmentation en mots
+</code></pre>
+                </section>
+
+                <section>
+                    <h3>Génération des données annotées (4/7)</h3>
+                    <h4>Alignement</h4>
+                    <br>
+                    <ul>
+                        <li class="fragment"><em>NIST align/scoring algorithm</em></li>
+                        <li class="fragment">Utilisé notamment en reconnaissance de la parole</li>
+                        <li class="fragment">Distance de Levenshtein (COR 0, INS 3, SUP 3, SUB 4)</li>
+                        <li class="fragment">DP pour trouver le coût minimal global</li>
+                    </ul>
+                </section>
+
+                <section>
+                    <h3>Génération des données annotées (5/7)</h3>
+                    <h4>Étiquetage</h4>
+                    <br>
+                    Algorithme :
+<pre><code style="font-size: 80%"><span style="font-weight: bold; color: #A49ACC;">Pour</span> chaque phrase source alignée :
+
+    <span style="font-weight: bold; color: #A49ACC;">Si</span> la phrase est <span style="color: #B25244">précédée</span> et <span style="color: #B25244">suivie</span> par du nouveau contenu dans la réponse :
+        On assigne l'étiquette <span style="color: #85B23D">Start&amp;End</span>
+    <span style="font-weight: bold; color: #A49ACC;">Sinon si</span> la phrase est <span style="color: #B25244">précédée</span> par du nouveau contenu :
+        On assigne l'étiquette <span style="color: #85B23D">Start</span>
+    <span style="font-weight: bold; color: #A49ACC;">Sinon si</span> la phrase est <span style="color: #B25244">suivie</span> par du nouveau contenu :
+        On assigne l'étiquette <span style="color: #85B23D">End</span>
+    <span style="font-weight: bold; color: #A49ACC;">Sinon</span> :
+        On assigne l'étiquette <span style="color: #85B23D">Inside</span>
+</code></pre>
+                </section>
+
+                <section>
+                    <h3>Génération des données annotées (6/7)</h3>
+                    <h4>Exemple (1/2)</h4>
+                    <br>
+<pre><code style="font-size: 75%">Bonjour Paul,
+
+> <span style="color: #56FF9A">Bonjour</span>,
+> <span style="color: #B25244">Je viens d'ouvrir un magasin d'encadrement et je suis sous ubuntu 13.04.</span style="color: ">
+
+Vous devriez penser à passer à Ubuntu 13.10 car la 13.04 échue en janvier 2014.
+
+> <span style="color: #56FF9A">Je dois maintenant rentrer une multitude de produits pour les loisir</span>
+> <span style="color: #56FF9A">créatifs, je m'aperçois que je n'arrive plus à gérer.</span> <span style="color: #8ABDFF">Je voudrais</span>
+> <span style="color: #8ABDFF">pouvoir enregistrer tous mes produits avec les prix et numéros de code</span>
+> <span style="color: #8ABDFF">commande.</span> <span style="color: #B25244">Car au moment ou le client arrive de pouvoir lui dire un prix</span>
+> <span style="color: #B25244">tout de suite comment je pourrais faire.</span>
+
+Vous pouvez regarder du côté de Dolibarr : http://www.dolibarr.fr. Permet la 
+gestion des stocks, clients comptes...
+</code></pre>
+                </section>
+                <section>
+                    <h3>Génération des données annotées (7/7)</h3>
+                    <h4>Exemple (2/2)</h4>
+                    <br>
+                    <table class="table table-bordered" style="font-size: 44%">
+                        <tr style="color: #56FF9A">
+                            <td rowspan=2 style="vertical-align: middle; font-weight: bold; color: white; border-left: none; border-top: none;">S1</td>
+                            <td style="text-align: center;">S</td>
+                            <td>Bonjour | ,
+                        </tr>
+                        <tr style="color: #B25244">
+                            <td style="text-align: center;">E</td>
+                            <td>Je | viens | d' | ouvrir | un | magasin | d'encadrement | et | je | suis | sous | ubuntu | 13.04 | .</td>
+                        </tr>
+                        <tr style="color: #56FF9A">
+                            <td rowspan=3 style="vertical-align: middle; font-weight: bold; color: white; border-left: none; border-top: none; border-bottom: none;">S2</td>
+                            <td style="text-align: center;">S</td>
+                            <td>Je | dois | maintenant | rentrer | une | multitude | de | produits | pour | les | loisir | créatifs | , | je | m'aperçois | que | je | n'arrive | plus | à | gérer | .</td>
+                        </tr>
+                        <tr style="color: #8ABDFF">
+                            <td style="text-align: center;">I</td>
+                            <td>Je | voudrais | pouvoir | enregistrer | tous | mes | produits | avec | les | prix | et | numéros | de | code | commande | .</td>
+                        </tr>
+                        <tr style="color: #B25244">
+                            <td style="text-align: center;">E</td>
+                            <td>Car | au | moment | ou | le | client | arrive | de | pouvoir | lui | dire | un | prix | tout | de | suite | comment | je | pourrais | faire | .</td>
+                        </tr>
+                    </table>
+                </section>
+            </section>
+
+            <section>
+                <section data-background="rgba(50,200,90,.4)">
+                    <h2>Segmentation de courriels</h2>
+                    <hr>
+                    <ol>
+                        <li>Approche : apprentissage supervisé</li>
+                        <li>Ensembles de traits</li>
+                    </ol>
+                </section>
+
+                <section>
+                    <h3>Approche : apprentissage supervisé</h3>
+                    <br>
+                    <ul>
+                        <li class="fragment">Détection des frontières</li>
+                        <li class="fragment">Étiquetage de séquences</li>
+                        <li class="fragment">Classification basée sur les CRF <span class="cite">[Lavergne <em>et al.</em>, 2010]</span></li>
+                        <li class="fragment">Fenêtre de 5 phrases</li>
+                        <li class="fragment">
+                            Ensembles de traits :
+                            <ul>
+                                <li>Lexicaux</li>
+                                <li>Morpho-syntaxiques</li>
+                                <li>Thématique</li>
+                                <li>Stylistiques et sémantiques</li>
+                            </ul>
+                    </ul>
+                </section>
+
+                <section>
+                    <h3>Ensembles de traits (1/4)</h3>
+                    <h4>Traits lexicaux ($n$-grammes)</h4>
+                    <br>
+                    <ul>
+                        <li>Bigrammes &amp; trigrammes</li>
+                        <li>Traits booléens</li>
+                        <li>1000 $n$-grammes qui apparaissent dans le plus de documents</li>
+                    </ul>
+                    <br>
+                    <br>$\Rightarrow$ 1000 observations par instance
+                </section>
+
+                <section>
+                    <h3>Ensembles de traits (2/4)</h3>
+                    <h4>Traits morpho-syntaxiques</h4>
+                    <br>
+                    <ul>
+                        <li>Théorie de la structure de l'information</li>
+                        <li>Trois premiers et trois derniers tokens
+                            <em>
+                                <strong>pertinents</strong>
+                            </em>
+                        </li>
+                        <li>Forme de surface, lemme et catégorie morphosyntaxique</li>
+                        <li>Unigrammes, bigrammes et trigrammes</li>
+                    </ul>
+                    <br>
+                    <br>$\Rightarrow$ 36 observations par instance
+                </section>
+
+                <section>
+                    <h3>Ensembles de traits (3/4)</h3>
+                    <h4>Trait thématique (<em>TextTiling</em>)</h4>
+                    <br>
+                    <ul>
+                        <li>Algorithme de segmentation thématique</li>
+                        <li>Repose sur la distribution et la co-occurrence lexicale</li>
+                        <li>Trait booléen</li>
+                    </ul>
+                    <br>
+                    <br>$\Rightarrow$ 1 observation par instance
+                </section>
+
+                <section>
+                    <h3>Ensembles de traits (4/4)</h3>
+                    <h4>Traits stylistiques et sémantiques</h4>
+                    <br>
+                    <ul>
+                        <li>Mesures de longueurs : phrase, token, message</li>
+                        <li>Ponctuation : présence et position</li>
+                        <li>Mesures de proportions : casse, caractères spéciaux, chiffres</li>
+                        <li>Traits syntaxiques : formes verbales, personne des pronoms</li>
+                        <li>Recherche de formes et mots spéciaux : modaux, mots interrogatifs, "
+                            <em>plan phrases</em>"</li>
+                        <li>Position de la phrase dans le message</li>
+                    </ul>
+                    <br>
+                    <br>$\Rightarrow$ 24 observations par instance
+                </section>
+            </section>
+
+            <section>
+                <section data-background="rgba(22,152,213,.6)">
+                    <h2>Cadre expérimental</h2>
+                    <hr>
+                    <ol>
+                        <li>Corpus</li>
+                        <li>Protocole d'évaluation</li>
+                    </ol>
+                </section>
+
+                <section>
+                    <h3>Corpus</h3>
+                    <ul>
+                        <li>
+                            Enron, BC3 &amp; W3C non retenus :
+                            <ul>
+                                <li>Trop orientés messagerie d'entreprise</li>
+                                <li>Pas assez techniques</li>
+                            </ul>
+                        </li>
+                        <br>
+                        <li class="fragment">
+                            Plate-forme Ubuntu :
+                            <ul>
+                                <li>Multimodal</li>
+                                <li>Multilingue</li>
+                                <li>Non restrictif</li>
+                            </ul>
+                        </li>
+                        <br>
+                        <li class="fragment">
+                            Liste de diffusion anglophone <em>ubuntu-users</em> (décembre 2013)
+                            <ul>
+                                <li>47 000 fils de discussion, 272 000 messages</li>
+                                <li>88 000 segments (1 segment $\thickapprox$ 5 phrases)</li>
+                            </ul>
+                        </li>
+
+                    </ul>
+                </section>
+
+                <section>
+                    <h3>Protocole d'évaluation</h3>
+                    <br>
+                    <ul>
+                        <li>Validation croisée (10 échantillons)</li>
+                        <br>
+                        <li class="fragment">
+                            Systèmes de référence :
+                            <ul>
+                                <li>Segmentation régulière</li>
+                                <li><em>TextTiling</em> <span class="cite">[Hearst, 1997]</span></li>
+                            </ul>
+                        </li>
+                        <br>
+                        <li class="fragment">
+                            Métriques :
+                            <ul>
+                                <li>
+                                    Métriques de RI : $\mathcal{P}$, $\mathcal{R}$, $\mathcal{F}1$
+                                </li>
+                                <li>
+                                    Métriques de segmentation :
+                                    <ul>
+                                        <li>$\mathcal{P_{k}}$ <span class="cite">[Beeferman <em>et al.</em>, 1999]</span></li>
+                                        <li><em>WindowDiff</em> <span class="cite">[Pevzner &amp; Hearst, 2002]</span></li>
+                                        <li>Distance de Hamming généralisée <span class="cite">[Bookstein <em>et al.</em>, 2002]</span></li>
+                                    </ul>
+                                </li>
+                            </ul>
+                        </li>
+                    </ul>
+                </section>
+            </section>
+
+            <section>
+                <section data-background="rgba(255,122,0,.6)">
+                    <h2>Expériences et résultats</h2>
+                    <hr>
+                    <ol>
+                        <li>Prétraitements</li>
+                        <li>Résultats</li>
+                    </ol>
+                </section>
+
+                <section>
+                    <h3>Prétraitements</h3>
+                    <br>
+                    <ul>
+                        <li class="fragment"><em>UTF-8</em>
+                        <li class="fragment">texte brut</li>
+                        <li class="fragment">Messages initiaux uniquement</li>
+                        <li class="fragment">Retrait de code et sorties machine</li>
+                    </ul>
+                    <br><br>
+                    <div class="fragment">$\Rightarrow$ 80% des messages sont ignorés</div>
+
+                </section>
+
+                <section>
+                    <h3>Résultats</h3>
+                    <br>
+                    <small>
+                        <table class="table table-condensed table-bordered table-centered">
+                            <tr>
+                                <td style="border-top: none; border-left: none; border-bottom: none;"></td>
+                                <td colspan="3">Mesures de segmentation</td>
+                                <td colspan="3">Mesures de RI</td>
+                            </tr>
+                            <tr>
+                                <td style="border-top: none; border-left: none;"></td>
+                                <td style="width: 80px">$WD$</td>
+                                <td style="width: 80px">$\mathcal{P_{k}}$</td>
+                                <td style="width: 80px">$GHD$</td>
+                                <td style="width: 80px">$P$</td>
+                                <td style="width: 80px">$R$</td>
+                                <td style="width: 80px">$\mathcal{F}1$</td>
+                            </tr>
+                            <tr>
+                                <td style="text-align: left !important;">Segmentation régulière</td>
+                                <td class="worst">.59</td>
+                                <td class="worst">.25</td>
+                                <td class="worst">.60</td>
+                                <td class="worst">.31</td>
+                                <td class="good">.49</td>
+                                <td class="worst">.38</td>
+                            </tr>
+                            <tr>
+                                <td style="text-align: left !important;"><em>TextTiling</em></td>
+                                <td class="bad">.41</td>
+                                <td class="good">.07</td>
+                                <td class="good">.38</td>
+                                <td class="bad">.75</td>
+                                <td class="bad">.44</td>
+                                <td class="bad">.56</td>
+                            </tr>
+                        </table>
+                        <table class="fragment table table-condensed table-bordered table-centered">
+                            <tr style="border-top: 5px solid white">
+                                <td style="text-align: left !important;">$\phi(A)$ avec $A$ = $n$-grammes</td>
+                                <td style="width: 80px" class="good">.38</td>
+                                <td style="width: 80px" class="best">.05</td>
+                                <td style="width: 80px" class="bad">.39</td>
+                                <td style="width: 80px" class="best">1</td>
+                                <td style="width: 80px" class="worst">.39</td>
+                                <td style="width: 80px" class="bad">.56</td>
+                            </tr>
+                            <tr>
+                                <td style="text-align: left !important;">$\phi(B)$ avec $B$ = structure de l'info. </td>
+                                <td class="bad">.43</td>
+                                <td class="bad">.11</td>
+                                <td class="good">.38</td>
+                                <td class="bad">.60</td>
+                                <td class="good">.68</td>
+                                <td class="best">.64</td>
+                            </tr>
+                            <tr>
+                                <td style="text-align: left !important;">$\phi(C)$ avec $C$ = <em>TextTiling</em></td>
+                                <td class="good">.39</td>
+                                <td class="best">.05</td>
+                                <td class="good">.38</td>
+                                <td class="good">.94</td>
+                                <td class="bad">.40</td>
+                                <td class="bad">.56</td>
+                            </tr>
+                            <tr>
+                                <td style="text-align: left !important;">$\phi(D)$ avec $D$ = stylistiques et sémant.</td>
+                                <td class="bad">.41</td>
+                                <td class="good">.09</td>
+                                <td class="good">.38</td>
+                                <td class="bad">.69</td>
+                                <td class="bad">.49</td>
+                                <td class="good">.57</td>
+                            </tr>
+                        </table>
+                        <table class="fragment table table-condensed table-bordered table-centered">
+                            <tr style="border-top: 5px solid white">
+                                <td style="text-align: left !important;">$\phi(A + B + C + D)$</td>
+                                <td style="width: 80px" class="good">.38</td>
+                                <td style="width: 80px" class="best">.05</td>
+                                <td style="width: 80px" class="bad">.39</td>
+                                <td style="width: 80px" class="best">1</td>
+                                <td style="width: 80px" class="worst">.39</td>
+                                <td style="width: 80px" class="bad">.56</td>
+                            </tr>
+                            <tr>
+                                <td style="text-align: left !important;">$\phi(\phi(A) + \phi(B) + \phi(C) + \phi(D))$</td>
+                                <td class="good">.38</td>
+                                <td class="good">.06</td>
+                                <td class="good">.36</td>
+                                <td class="good">.81</td>
+                                <td class="bad">.47</td>
+                                <td class="good">.59</td>
+                            </tr>
+                            <tr>
+                                <td style="text-align: left !important;">$\phi(A) \cup \phi(B + C + D)$</td>
+                                <td class="bad">.45</td>
+                                <td class="bad">.12</td>
+                                <td class="bad">.40</td>
+                                <td class="bad">.58</td>
+                                <td class="best">.69</td>
+                                <td class="good">.63</td>
+                            </tr>
+                            <tr>
+                                <td style="text-align: left !important;">$\phi(A) \cup \psi(\phi(B + C + D))$</td>
+                                <td class="best">.36</td>
+                                <td class="good">.06</td>
+                                <td class="best">.34</td>
+                                <td class="good">.80</td>
+                                <td class="good">.53</td>
+                                <td class="best">.64</td>
+                            </tr>
+                        </table>
+                    </small>
+                </section>
+            </section>
+
+            <section>
+                <section data-background="rgba(50,200,90,.4)">
+                    <h2>Conclusion</h2>
+                    <hr>
+                    <ol>
+                        <li>Réalisations</li>
+                        <li>Perspectives</li>
+                        <li>Publications</li>
+                    </ol>
+                </section>
+
+                <section>
+                    <h3>Réalisations</h3>
+                    <br>
+                    <ul>
+                        <li>Technique d'étiquetage automatique</li>
+                        <li>Système de segmentation et évaluation de différents modèles</li>
+                        <li>Nouveau corpus pour l'analyse de discussions asynchrones en ligne</li>
+                    </ul>
+                </section>
+
+                <section>
+                    <h3>Perspectives</h3>
+                    <br>
+                    <ul>
+                        <li class="fragment">Segmentation : considérer les traits contextuels</li>
+                        <li class="fragment">Construction des données : considérer toutes les phrases des messages sources</li>
+                        <li class="fragment">Évaluation intrinsèque : annotateurs humains</li>
+                        <li class="fragment">Évaluation extrinsèque : apports de la segmentation</li>
+                        <li class="fragment">Applications : résumé automatique</li>
+                    </ul>
+                </section>
+
+                <section>
+                    <h3>Publications</h3>
+                    <br>
+                    <em>Exploiting the human computational effort dedicated to message reply formatting for training discursive email segmenters</em>
+                    <hr>
+                    <small>
+                        <em>The 8th Linguistic Annotation Workshop</em> (LAW 8)
+                        <br>
+                        <em>The 25th International Conference on Computational Linguistics</em> (COLING 2014)
+                    </small>
+                </section>
+
+            </section>
+
+            <section data-background="rgba(12,25,77,.4)">
+                <h1>Questions ?</h1>
+            </section>
+
+        </div>
+
+    </div>
+    <div class="share-reveal" style="display: block; position: absolute; bottom: 14px; left: 1%; z-index: 20; color: white;">
+        Soufian Salim - M2 ATAL - LINA - 2014
+    </div>
+    <script src="lib/js/head.min.js"></script>
+    <script src="js/reveal.min.js"></script>
+
+    <script>
+    // Full list of configuration options available here:
+    // https://github.com/hakimel/reveal.js#configuration
+    Reveal.initialize({
+        controls: true,
+        progress: true,
+        history: true,
+        center: true,
+        slideNumber: true,
+
+        theme: Reveal.getQueryHash().theme, // available themes are in /css/theme
+        transition: Reveal.getQueryHash().transition || 'linear', // default/cube/page/concave/zoom/linear/fade/none
+
+        math: {
+            mathjax: 'http://cdn.mathjax.org/mathjax/latest/MathJax.js',
+            config: 'TeX-AMS_HTML-full' // See http://docs.mathjax.org/en/latest/config-files.html
+        },
+        // Parallax scrolling
+        // parallaxBackgroundImage: 'https://s3.amazonaws.com/hakim-static/reveal-js/reveal-parallax-1.jpg',
+        // parallaxBackgroundSize: '2100px 900px',
+
+        // Optional libraries used to extend on reveal.js
+        dependencies: [{
+            src: 'lib/js/classList.js',
+            condition: function() {
+                return !document.body.classList;
+            }
+        }, {
+            src: 'plugin/markdown/marked.js',
+            condition: function() {
+                return !!document.querySelector('[data-markdown]');
+            }
+        }, {
+            src: 'plugin/markdown/markdown.js',
+            condition: function() {
+                return !!document.querySelector('[data-markdown]');
+            }
+        }, /*{
+            src: 'plugin/highlight/highlight.js',
+            async: true,
+            callback: function() {
+                hljs.initHighlightingOnLoad();
+            }
+        }, */{
+            src: 'plugin/zoom-js/zoom.js',
+            async: true,
+            condition: function() {
+                return !!document.body.classList;
+            }
+        }, {
+            src: 'plugin/notes/notes.js',
+            async: true,
+            condition: function() {
+                return !!document.body.classList;
+            }
+        }, {
+            src: 'plugin/math/math.js',
+            async: true
+        }]
+    });
+    </script>
+
+</body>
+
+</html>
